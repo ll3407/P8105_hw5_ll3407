@@ -27,8 +27,62 @@ scale_fill_discrete = scale_fill_viridis_d
 
 ##Problem 1
 
-```{r}
-litters_data = read_csv(file = "./data/co.csv")
+```{r eval = FALSE}
+file_name = list.files(path = "./data", 
+                       pattern = ".csv", 
+                       all.files = FALSE, 
+                       full.names = FALSE, 
+                       recursive = FALSE, 
+                       ignore.case = FALSE,
+                       include.dirs = FALSE, 
+                       no.. = FALSE) %>% view()
+ 
+    file_name_2 = 
+      list(
+        arm = str_extract_all(file_name,"[c-e][o-x][n-p]"), 
+        subject_id = str_extract(file_name, "[0-9]{1,2}")) %>% view()
+  
 ```
 
+```{r}
+dataframe = file_name %>% 
+  purrr::map_df(~read_csv(file.path("./data", .))) %>% 
+  bind_cols(file_name) %>% 
+  bind_cols(file_name_2) %>% 
+  rename(arm = c..con....con....con....con....con....con....con....con....con...) %>% 
+  rename(file =x) %>% 
+  pivot_longer(week_1:week_8,
+               names_to = "week",
+               values_to = "estimate")%>% 
+  group_by(file)
+
+ 
+```
+
+##Problem 2
+```{r}
+homicide = read_csv(file = "./data/homicide-data.csv") %>%
+  janitor::clean_names() %>% 
+  mutate (new = homicide$new <-  do.call(paste, c(homicide[c("city", "state")], sep = ","))) %>% 
+  mutate(city_state = new)  
+head(homicide, n =30) %>% view()  
+  
+```
+
+```{r}
+total = homicide %>% group_by(city, state) %>% 
+  summarize(n_obs = n()) %>% 
+  knitr::kable()
+  
+  unsolved = homicide %>% 
+    filter(disposition != "Closed by arrest") %>% 
+    group_by(city, state) %>% 
+    summarize(n_obs = n()) %>% 
+    knitr::kable()
+    
+```
+
+```{r}
+
+```
 
