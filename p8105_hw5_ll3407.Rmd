@@ -27,7 +27,7 @@ scale_fill_discrete = scale_fill_viridis_d
 
 ##Problem 1
 
-```{r eval = FALSE}
+```{r, eval = FALSE, include= FALSE}
 file_name = list.files(path = "./data", 
                        pattern = ".csv", 
                        all.files = FALSE, 
@@ -60,29 +60,92 @@ dataframe = file_name %>%
 ```
 
 ##Problem 2
+
+# Input dataset and  create variable "city_state"
 ```{r}
 homicide = read_csv(file = "./data/homicide-data.csv") %>%
   janitor::clean_names() %>% 
   mutate (new = homicide$new <-  do.call(paste, c(homicide[c("city", "state")], sep = ","))) %>% 
-  mutate(city_state = new)  
+  mutate(city_state = new) %>% 
+  select(-new)
+  
 head(homicide, n =30) %>% view()  
   
 ```
-
+# summarize total number of homicide by city and unsolved homicide by city
 ```{r}
-total = homicide %>% group_by(city, state) %>% 
-  summarize(n_obs = n()) %>% 
-  knitr::kable()
-  
-  unsolved = homicide %>% 
+total = homicide %>% 
+  group_by(city_state) %>%
+  summarize(count=n())%>%
+  rename(total_number = count) 
+
+unsolved = homicide %>% 
     filter(disposition != "Closed by arrest") %>% 
-    group_by(city, state) %>% 
-    summarize(n_obs = n()) %>% 
-    knitr::kable()
-    
+    group_by(city_state) %>% 
+    summarize(count=n()) %>% 
+    rename(unsolved_number = count) 
 ```
+
+Combine unsolved and total homicide dataset by city_state, and list it
+```{r}
+homicide_2 = left_join(total, unsolved, by = "city_state") %>% 
+  arrange(desc(unsolved_number)) 
+
+homicide_list<-vector("list",nrow(homicide_2))
+for (i in 1:nrow(homicide_2)){
+  homicide_list[[i]]<-homicide_2[i,]
+} 
+
+```
+
+#Baltimore unsolved prop test
+```{r}
+Baltimore_2 =prop.test(x = 1825, n = 2827, p = NULL, 
+    alternative =   c("two.sided"),
+    conf.level = 0.95, correct = TRUE ) %>% 
+  broom::tidy() %>% 
+  select(estimate, conf.low, conf.high)
+```
+
+# function of prop.test 
+```{r}
+prop = function(a){
+    
+    test = prop.test(n = a$total_number, x = a$unsolved_number, p = NULL, 
+    alternative =   c("two.sided"),
+    conf.level = 0.95, correct = TRUE ) 
+    
+  broom::tidy(test) %>% 
+  select(estimate, conf.low, conf.high)
+  
+}
+
+```
+
+
+```{r}
+output = vector("list",length = 50)
+for(i in 1:50){
+  output[[i]] = prop(homicide_list[[i]])
+}
+  
+
+output=
+ purrr::map(.x = homicide_list, ~prop(.x), .default = NA_character_)
+
+```
+
+```{r}
+library(purrr)
+
+homicide_3 = homicide_2 %>% 
+  mutate(proportion = output)
+  
+```
+
 
 ```{r}
 
 ```
+
 
