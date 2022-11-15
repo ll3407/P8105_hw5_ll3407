@@ -7,6 +7,7 @@ date: "2022-11-10"
 ```{r, include= FALSE, message = FALSE, warning = FALSE}
 library(tidyverse)
 library(rvest)
+library(purrr)
 
 knitr::opts_chunk$set(
 	echo = TRUE,
@@ -36,20 +37,20 @@ file_name = list.files(path = "./data",
                        ignore.case = FALSE,
                        include.dirs = FALSE, 
                        no.. = FALSE) %>% view()
- 
     file_name_2 = 
       list(
         arm = str_extract_all(file_name,"[c-e][o-x][n-p]"), 
-        subject_id = str_extract(file_name, "[0-9]{1,2}")) %>% view()
+        subject_id = str_extract_all(file_name, "[0-9]{1,2}")) %>% view()
   
 ```
 
 ```{r}
 dataframe = file_name %>% 
-  purrr::map_df(~read_csv(file.path("./data", .))) %>% 
+  map_df(~read_csv(file.path("./data", .))) %>% 
   bind_cols(file_name) %>% 
   bind_cols(file_name_2) %>% 
   rename(arm = c..con....con....con....con....con....con....con....con....con...) %>% 
+  rename(subject_id = c..01....02....03....04....05....06....07....08....09....10...) %>% 
   rename(file =x) %>% 
   pivot_longer(week_1:week_8,
                names_to = "week",
@@ -58,15 +59,17 @@ dataframe = file_name %>%
 
 ```
 
+```{r}
+dataframe %>% ggplot(aes(x = week, y = estimate))+geom_line()
+```
+
 ##Problem 2
 
 # Input dataset and  create variable "city_state"
 ```{r}
-homicide = read_csv(file = "./data/homicide-data.csv") %>%
+homicide = read_csv(file = "./data2/homicide-data.csv") %>%
   janitor::clean_names() %>% 
-  mutate (new = homicide$new <-  do.call(paste, c(homicide[c("city", "state")], sep = ","))) %>% 
-  mutate(city_state = new) %>% 
-  select(-new)
+  unite("city_state",c("city", "state"), sep = ",") 
   
 head(homicide, n =30) %>% view()  
   
@@ -119,6 +122,17 @@ prop = function(a){
   
 }
 
+```
+
+```{r}
+homicide_list
+
+library(purrr)
+unsolved_prop = 
+  tibble(
+    city_number = 1:50,
+    homi = str_c(homicide_list, city_number)) %>% 
+  mutate(.x = homi, ~prop(.x)) 
 ```
 
 
