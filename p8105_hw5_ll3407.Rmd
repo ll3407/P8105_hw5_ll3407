@@ -88,10 +88,12 @@ unsolved = homicide %>%
     rename(unsolved_number = count) 
 ```
 
-Combine unsolved and total homicide dataset by city_state, and list it
+#Combine unsolved and total homicide dataset by city_state, drop a city with 'NA' in unsolved homicides, and make a list
 ```{r}
 homicide_2 = left_join(total, unsolved, by = "city_state") %>% 
-  arrange(desc(unsolved_number)) 
+  arrange(desc(unsolved_number)) %>% 
+  filter(unsolved_number != 'NA') %>% view()
+
 
 homicide_list<-vector("list",nrow(homicide_2))
 for (i in 1:nrow(homicide_2)){
@@ -124,37 +126,31 @@ prop = function(a){
 
 ```
 
+#Use map to list columns and unnest 
 ```{r}
-homicide_list
-
-library(purrr)
-unsolved_prop = 
-  tibble(
-    city_number = 1:50,
-    homi = str_c(homicide_list, city_number)) %>% 
-  mutate(.x = homi, ~prop(.x)) 
-```
-
-
-```{r}
-output = vector("list",length = 50)
-for(i in 1:50){
-  output[[i]] = prop(homicide_list[[i]])
-}
-  
-
-output=
- purrr::map(.x = homicide_list, ~prop(.x), .default = NA_character_)
+homicide_3 = 
+  homicide_2 %>% 
+  mutate(
+  estimate_dfs =  map(.x = homicide_list, ~prop(.x), bind_rows)) %>% 
+  unnest(estimate_dfs)
 
 ```
 
-```{r}
-library(purrr)
+#Plot for estimate and CIs for each city
+```{r fig.width=20,fig.height=5}
+library("ggplot2")
+  homicide_3 %>% 
+  mutate(proportion = round(estimate,3))%>% 
+  ggplot(aes(reorder(city_state,proportion), y = proportion)) + geom_point() + geom_errorbar(aes(ymin = conf.low, ymax = conf.high)) +
+  labs(
+    title = "Plot of unsolved homicide proportions",
+    x = "City",
+    y = "Proportions and 95% CIs of unsolved homicides")
 
-homicide_3 = homicide_2 %>% 
-  mutate(proportion = output)
-  
+
 ```
+
+
 
 ## Problem 3
 # t.test for normal distribution (mu=0)
